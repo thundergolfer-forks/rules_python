@@ -158,7 +158,7 @@ def main():
   args = parser.parse_args()
 
   # https://github.com/pypa/pip/blob/6af9de97bbd2427f82942e476c590a2db22ea1ff/src/pip/_internal/__init__.py#L54
-  if pip_main(["wheel", "-w", args.directory, "-r", args.input]):
+  if pip_main(["wheel", "-b", "/tmp/pip-build", "-w", args.directory, "-r", args.input]):
     sys.exit(1)
 
   # Enumerate the .whl files we downloaded.

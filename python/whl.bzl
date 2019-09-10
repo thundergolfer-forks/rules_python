@@ -37,7 +37,7 @@ def _whl_impl(repository_ctx):
 
 whl_library = repository_rule(
     attrs = {
-        "python_interpreter": attr.string(),
+        "python_interpreter": attr.string(default="python"),
         "whl": attr.label(
             mandatory = True,
             allow_single_file = True,

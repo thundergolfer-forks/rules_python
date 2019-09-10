@@ -89,6 +89,10 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--name', action='store',
                     help=('The namespace of the import.'))
 
+parser.add_argument('--python_interpreter', action='store',
+                    help=('The python python interpreter to use '),
+                    default='python')
+
 parser.add_argument('--input', action='store',
                     help=('The requirements.txt file to import.'))
 
@@ -177,10 +181,12 @@ def main():
   if "{repo_name}" not in native.existing_rules():
     whl_library(
         name = "{repo_name}",
+        python_interpreter = "{python_interpreter}",
         whl = "@{name}//:{path}",
         requirements = "@{name}//:requirements.bzl",
         extras = [{extras}]
     )""".format(name=args.name, repo_name=wheel.repository_name(),
+                python_interpreter=args.python_interpreter,
                 path=wheel.basename(),
                 extras=','.join([
                   '"%s"' % extra

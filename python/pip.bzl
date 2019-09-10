@@ -13,6 +13,40 @@
 # limitations under the License.
 """Import pip requirements into Bazel."""
 
+def _shared_pip_import_impl(python_interpreter, repository_ctx):
+  """Core implementation of pip_import."""
+
+  # Add an empty top-level BUILD file.
+  # This is because Bazel requires BUILD files along all paths accessed
+  # via //this/sort/of:path and we wouldn't be able to load our generated
+  # requirements.bzl without it.
+  repository_ctx.file("BUILD", "")
+
+  # To see the output, pass: quiet=False
+  result = repository_ctx.execute([
+    python_interpreter, repository_ctx.path(repository_ctx.attr._script),
+    "--python_interpreter", python_interpreter,
+    "--name", repository_ctx.attr.name,
+    "--input", repository_ctx.path(repository_ctx.attr.requirements),
+    "--output", repository_ctx.path("requirements.bzl"),
+    "--directory", repository_ctx.path(""),
+  ])
+
+  if result.return_code:
+    fail("pip_import failed: %s (%s)" % (result.stdout, result.stderr))
+
+_shared_attrs = {
+    "requirements": attr.label(
+        mandatory = True,
+        allow_single_file = True,
+    ),
+    "_script": attr.label(
+        executable = True,
+        default = Label("//tools:piptool.par"),
+        cfg = "host",
+    ),
+}
+
 def _pip_import_impl(repository_ctx):
     """Core implementation of pip_import."""
 
@@ -54,8 +88,23 @@ pip_import = repository_rule(
     implementation = _pip_import_impl,
 )
 
-"""A rule for importing <code>requirements.txt</code> dependencies into Bazel.
+def _pip2_import_impl(repository_ctx):
+    _shared_pip_import_impl("python2", repository_ctx)
 
+pip2_import = repository_rule(
+    attrs = _shared_attrs,
+    implementation = _pip2_import_impl,
+)
+
+def _pip3_import_impl(repository_ctx):
+    _shared_pip_import_impl("python3", repository_ctx)
+
+pip3_import = repository_rule(
+    attrs = _shared_attrs,
+    implementation = _pip3_import_impl,
+)
+
+"""A rule for importing <code>requirements.txt</code> dependencies into Bazel.
 This rule imports a <code>requirements.txt</code> file and generates a new
 <code>requirements.bzl</code> file.  This is used via the <code>WORKSPACE</code>
 pattern:
@@ -66,7 +115,6 @@ pattern:
 load("@foo//:requirements.bzl", "pip_install")
 pip_install()
 </code></pre>
-
 You can then reference imported dependencies from your <code>BUILD</code>
 file with:
 <pre><code>load("@foo//:requirements.bzl", "requirement")
@@ -80,7 +128,6 @@ py_library(
     ],
 )
 </code></pre>
-
 Or alternatively:
 <pre><code>load("@foo//:requirements.bzl", "all_requirements")
 py_binary(
@@ -91,10 +138,10 @@ py_binary(
     ] + all_requirements,
 )
 </code></pre>
-
 Args:
   requirements: The label of a requirements.txt file.
 """
+
 
 def pip_repositories():
     """Pull in dependencies needed to use the packaging rules."""
